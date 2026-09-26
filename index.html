@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TUAN ARESTU - Financial Audit & Mathematical Intelligence Engine v6.0</title>
-    
     <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,7 +68,6 @@
     </style>
 </head>
 <body class="font-sans text-slate-900 bg-slate-50 antialiased h-full flex flex-col">
-
     <!-- TOP EXECUTIVE NAVBAR -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -924,6 +922,7 @@
             renderAuditTrailTable();
         }
 
+        // TAB SWITCHING LOGIC
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tabId}-content`).classList.remove('hidden');
@@ -939,6 +938,7 @@
                 activeBtn.classList.remove('text-slate-600', 'font-medium');
             }
 
+            // Sync mobile tabs styling
             document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
                 btn.classList.remove('bg-brand-700', 'text-white');
                 btn.classList.add('bg-white', 'text-slate-700');
@@ -954,6 +954,7 @@
             dropdown.classList.toggle('hidden');
         }
 
+        // Close dropdown when clicking outside
         window.onclick = function(e) {
             if (!e.target.closest('.relative')) {
                 const dropdown = document.getElementById('systemDropdown');
@@ -963,9 +964,12 @@
             }
         };
 
+        // FINANCIAL COMPUTATIONS
         function recalculateCOABalances() {
+            // Reset balances to 0
             appState.coa.forEach(a => a.balance = 0);
 
+            // Re-aggregate from ledger
             appState.ledger.forEach(tx => {
                 const debitAcc = appState.coa.find(a => a.code === tx.debitCode);
                 const creditAcc = appState.coa.find(a => a.code === tx.creditCode);
@@ -1002,15 +1006,18 @@
             return rev - exp;
         }
 
+        // FORENSIC AUDIT ENGINE (AR-001 s/d AR-008)
         function evaluateForensicRules() {
             const anomalies = [];
 
+            // Total Assets vs Liabilities + Equity + Retained Net Income
             const totalAssets = getCategoryTotal('asset');
             const totalLiabilities = getCategoryTotal('liability');
             const totalEquity = getCategoryTotal('equity');
             const netIncome = getNetIncome();
             const totalPasiva = totalLiabilities + totalEquity + netIncome;
 
+            // AR-001: Keseimbangan Neraca
             const ar001Passed = Math.abs(totalAssets - totalPasiva) < 1;
             if (!ar001Passed) {
                 anomalies.push({
@@ -1025,6 +1032,7 @@
                 });
             }
 
+            // AR-002: Rasio Likuiditas Kas
             const totalCash = appState.coa.filter(a => a.code.startsWith('101')).reduce((s, a) => s + a.balance, 0);
             const currentLiabilities = getCategoryTotal('liability', 'current');
             const cashRatio = currentLiabilities > 0 ? (totalCash / currentLiabilities) : 999;
@@ -1042,6 +1050,7 @@
                 });
             }
 
+            // AR-003: Smurfing / Structuring Detection
             const smurfingGroup = {};
             appState.ledger.forEach(tx => {
                 if (tx.amount >= 9000000 && tx.amount < 10000000) {
@@ -1069,6 +1078,7 @@
                 }
             });
 
+            // AR-004: Rapid Journal Reversal Detection
             let ar004Passed = true;
             appState.ledger.forEach((tx1, idx) => {
                 appState.ledger.slice(idx + 1).forEach(tx2 => {
@@ -1088,6 +1098,7 @@
                 });
             });
 
+            // AR-005: Outlier Nominal Transaksi (> Rp 150.000.000)
             let ar005Passed = true;
             appState.ledger.forEach(tx => {
                 if (tx.amount >= 150000000) {
@@ -1105,6 +1116,7 @@
                 }
             });
 
+            // AR-006: Duplikasi Referensi
             const refCounts = {};
             appState.ledger.forEach(tx => {
                 refCounts[tx.ref] = (refCounts[tx.ref] || 0) + 1;
@@ -1127,6 +1139,7 @@
                 }
             });
 
+            // AR-007: Akun Tidak Terkategori
             let ar007Passed = true;
             appState.ledger.forEach(tx => {
                 if (tx.debitCode === '599-001' || tx.creditCode === '599-001') {
@@ -1144,11 +1157,12 @@
                 }
             });
 
+            // AR-008: Anomali Arus Kas Operasional
             const ar008Passed = netIncome >= 0;
             if (!ar008Passed) {
                 anomalies.push({
                     rule: 'AR-008',
-                    ruleName: 'Anomali Arus Kas Operasional',
+                    ruleName: 'Anomali Defisit Laba/Rugi Operasional',
                     ref: 'SYS-INC-08',
                     date: new Date().toISOString().split('T')[0],
                     desc: `Posisi keuangan mengalami defisit / rugi bersih sebesar (${formatIDR(Math.abs(netIncome))})`,
@@ -1250,15 +1264,18 @@
         function updateAllUIComponents() {
             const { anomalies } = evaluateForensicRules();
 
+            // KPI 1: Assets
             const totalAssets = getCategoryTotal('asset');
             document.getElementById('kpiTotalAssets').textContent = formatIDR(totalAssets);
 
+            // KPI 2: Cash & Liquidity
             const totalCash = appState.coa.filter(a => a.code.startsWith('101')).reduce((s, a) => s + a.balance, 0);
             document.getElementById('kpiTotalCash').textContent = formatIDR(totalCash);
             const currentLiabilities = getCategoryTotal('liability', 'current');
             const cashRatio = currentLiabilities > 0 ? (totalCash / currentLiabilities).toFixed(2) : '∞';
             document.getElementById('kpiCashRatio').textContent = `${cashRatio}x`;
 
+            // KPI 3: Net Profit & Margin
             const netIncome = getNetIncome();
             const totalRev = getCategoryTotal('revenue');
             const profitMargin = totalRev > 0 ? ((netIncome / totalRev) * 100).toFixed(1) : 0;
@@ -1266,6 +1283,7 @@
             document.getElementById('kpiNetProfit').className = `text-2xl font-extrabold font-mono ${netIncome >= 0 ? 'text-slate-900' : 'text-rose-600'}`;
             document.getElementById('kpiProfitMargin').textContent = `${profitMargin}%`;
 
+            // KPI 4: Compliance Score
             const anomalyCount = anomalies.length;
             const score = Math.max(0, 100 - (anomalyCount * 12.5));
             document.getElementById('kpiAuditScore').textContent = `${score}%`;
@@ -1625,6 +1643,7 @@
             });
         }
 
+        // MODAL & ACTION HANDLERS
         function populateModalDropdowns() {
             const debitSelect = document.getElementById('txDebitAccount');
             const creditSelect = document.getElementById('txCreditAccount');
@@ -1783,7 +1802,6 @@
             document.getElementById('purgeModal').classList.add('hidden');
         }
 
-        // FUNGSI PASSWORD PURGE DATA YANG DIUBAH MENJADI 20090103
         function handlePurgeSubmit(e) {
             e.preventDefault();
             const pass = document.getElementById('purgePasswordInput').value;
@@ -1808,41 +1826,46 @@
                 { date: '2026-03-14', ref: 'BKK-2026-003', description: 'Beban Sewa Gedung Kantor Pusat', debitCode: '502-001', creditCode: '101-001', amount: 15000000, status: 'verified' },
                 { date: '2026-03-15', ref: 'BKK-2026-004', description: 'Infrastruktur Cloud & Server AWS/Azure', debitCode: '503-001', creditCode: '101-001', amount: 8500000, status: 'verified' },
                 { date: '2026-03-15', ref: 'BKK-2026-005', description: 'Beban Kampanye Pemasaran Digital', debitCode: '504-001', creditCode: '101-001', amount: 12000000, status: 'verified' },
+                // Triggering AR-003 (Smurfing/Structuring Simulation)
                 { date: '2026-03-18', ref: 'TX-SMURF-01', description: 'Penerimaan Kas Berulang A', debitCode: '101-001', creditCode: '401-001', amount: 9800000, status: 'flagged' },
                 { date: '2026-03-18', ref: 'TX-SMURF-02', description: 'Penerimaan Kas Berulang B', debitCode: '101-001', creditCode: '401-001', amount: 9750000, status: 'flagged' }
             ];
 
-            logAuditEvent('LOAD_SEED_DATA', 'System Enterprise', 'Memuat data simulasi transaksi standar enterprise');
+            logAuditEvent('LOAD_SEED_DATA', 'System Enterprise', 'Memuat data simulasi transaksi');
             recalculateCOABalances();
         }
 
+        // EXPORT FUNCTIONS
         function exportAuditReportCSV() {
-            let csv = 'Tanggal,Nomor Ref,Uraian,Debit Code,Kredit Code,Nominal,Status\n';
-            appState.ledger.forEach(t => {
-                csv += `"${t.date}","${t.ref}","${t.description}","${t.debitCode}","${t.creditCode}",${t.amount},"${t.status}"\n`;
+            let csv = 'Tanggal,No Ref,Uraian,Debit Code,Kredit Code,Nominal,Status\n';
+            appState.ledger.forEach(tx => {
+                csv += `"${tx.date}","${tx.ref}","${tx.description}","${tx.debitCode}","${tx.creditCode}",${tx.amount},"${tx.status}"\n`;
             });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `General_Ledger_Report_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `General_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            logAuditEvent('EXPORT_CSV', 'Eksekutif User', 'Mengekspor General Ledger ke format CSV');
         }
 
         function exportAuditTrailJSON() {
-            const json = JSON.stringify(appState.auditLogs, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Audit_Trail_Logs_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState.auditLogs, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Audit_Trail_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            logAuditEvent('EXPORT_JSON', 'Eksekutif User', 'Mengekspor Audit Logs ke format JSON');
         }
 
-        function askAIQuery(query) {
-            switchTab('aiAssistant');
-            document.getElementById('aiQueryInput').value = query;
-            processAIQuery(query);
+        // AI ASSISTANT INTERACTIONS
+        function askAIQuery(queryText) {
+            document.getElementById('aiQueryInput').value = queryText;
+            handleAISubmit(new Event('submit'));
         }
 
         function handleAISubmit(e) {
@@ -1850,81 +1873,67 @@
             const input = document.getElementById('aiQueryInput');
             const query = input.value.trim();
             if (!query) return;
-            input.value = '';
-            processAIQuery(query);
-        }
 
-        function processAIQuery(query) {
-            const chatContainer = document.getElementById('aiChatContainer');
+            const chatBox = document.getElementById('aiChatContainer');
 
+            // User Message
             const userMsg = document.createElement('div');
             userMsg.className = 'flex items-start justify-end space-x-3';
             userMsg.innerHTML = `
-                <div class="bg-brand-700 text-white p-3.5 rounded-2xl text-xs space-y-1 max-w-xl shadow-sm">
-                    <p>${query}</p>
+                <div class="bg-brand-700 text-white p-3.5 rounded-2xl text-xs max-w-xl shadow-sm">
+                    ${query}
                 </div>
             `;
-            chatContainer.appendChild(userMsg);
+            chatBox.appendChild(userMsg);
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
 
-            let aiResponse = "";
-            const lowerQuery = query.toLowerCase();
+            // AI Response Generation
+            setTimeout(() => {
+                let responseText = "Terima kasih atas kueri Anda. ";
+                const qLower = query.toLowerCase();
 
-            if (/[0-9\+\-\*\/\^\(\)]/.test(query) && (lowerQuery.includes('hitung') || lowerQuery.includes('berapa') || lowerQuery.includes('rumus') || lowerQuery.includes('akar') || lowerQuery.includes('integral') || lowerQuery.includes('turunan') || lowerQuery.includes('evaluasi'))) {
-                try {
-                    const cleanMathStr = query.replace(/[^0-9\+\-\*\/\^\(\)\.\,\s]/g, '').trim();
-                    let evaluatedResult = null;
-                    if (cleanMathStr) {
-                        try {
-                            const mathExpr = cleanMathStr.replace(/\^/g, '**');
-                            evaluatedResult = Function(`'use strict'; return (${mathExpr})`)();
-                        } catch (err) {
-                            evaluatedResult = null;
-                        }
+                if (qLower.includes('likuiditas') || qLower.includes('rasio')) {
+                    const totalCash = appState.coa.filter(a => a.code.startsWith('101')).reduce((s, a) => s + a.balance, 0);
+                    const currentLiabilities = getCategoryTotal('liability', 'current');
+                    const cashRatio = currentLiabilities > 0 ? (totalCash / currentLiabilities).toFixed(2) : '∞';
+                    responseText = `**Analisis Likuiditas Kas Real-time:**\n- **Total Kas & Setara Kas:** ${formatIDR(totalCash)}\n- **Liabilitas Jangka Pendek:** ${formatIDR(currentLiabilities)}\n- **Rasio Kas:** ${cashRatio}x.\nPosisi likuiditas perusahaan berada dalam kondisi ${parseFloat(cashRatio) >= 0.8 ? 'sehat dan aman' : 'perlu perhatian khusus'}.`;
+                } else if (qLower.includes('anomali') || qLower.includes('fraud')) {
+                    const { anomalies } = evaluateForensicRules();
+                    responseText = `**Evaluasi Audit Forensik:**\nSistem menemukan **${anomalies.length} temuan anomali**. ` + (anomalies.length > 0 ? "Silakan periksa Tab Audit Forensik untuk perincian aturan AR-001 s/d AR-008." : "Seluruh transaksi telah memenuhi standar kepatuhan.");
+                } else if (qLower.includes('benford')) {
+                    responseText = `**Hukum Benford dalam Audit Forensik:**\nHukum Benford (First-Digit Law) menyatakan bahwa dalam kumpulan data angka alami, angka 1 muncul sebagai digit pertama sekitar 30,1% dari total populasi. Penyimpangan signifikan dari distribusi ini dapat mendeteksi manipulasi angka buatan atau pemalsuan nota.`;
+                } else if (qLower.includes('*') || qLower.includes('^') || qLower.includes('+')) {
+                    try {
+                        const sanitized = query.replace('^', '**');
+                        const calc = eval(sanitized);
+                        responseText = `**Hasil Kuantitatif Matematika:**\nPersamaan \`${query}\` = **${calc.toLocaleString('id-ID')}**`;
+                    } catch (err) {
+                        responseText = `Perhitungan matematika tidak dapat diproses secara langsung. Pastikan format penulisan angka benar.`;
                     }
-
-                    aiResponse = `<strong>[Modul Evaluasi Matematika & Kalkulus Engine]</strong><br><br>`;
-                    if (evaluatedResult !== null && !isNaN(evaluatedResult)) {
-                        aiResponse += `<b>Hasil Kalkulasi Eksak:</b><br><code class="bg-slate-100 px-2 py-1 rounded text-brand-800 font-mono text-sm">${cleanMathStr} = ${evaluatedResult.toLocaleString('id-ID')}</code><br><br>`;
-                    }
-
-                    if (lowerQuery.includes('benford')) {
-                        aiResponse += `<b>Hukum Benford (Analisis Digit Pertama):</b><br>
-                        Formulasi probabilitas munculnya digit d:<br>
-                        P(d) = log10(1 + 1/d)<br>
-                        Digunakan dalam audit forensik untuk memverifikasi apakah distribusi angka dalam transaksi laporan keuangan alami atau direkayasa (fraud).`;
-                    } else if (lowerQuery.includes('integral')) {
-                        aiResponse += `<b>Kalkulus Integral:</b><br>
-                        Integral mendefinisikan akumulasi area di bawah kurva.<br>
-                        Dalam analisis kuantitatif keuangan, kalkulus integral digunakan untuk menghitung nilai akumulasi arus kas kontinu dan penilaian risiko opsi kuantitatif.`;
-                    } else if (lowerQuery.includes('turunan') || lowerQuery.includes('diferensial')) {
-                        aiResponse += `<b>Kalkulus Diferensial:</b><br>
-                        Turunan pertama menentukan laju perubahan instan.`;
-                    }
-                } catch (e) {
-                    aiResponse = "Terjadi kesalahan pada evaluasi rumus matematika.";
+                } else {
+                    responseText = `Sistem telah memproses kueri Anda. Seluruh data keuangan, jurnal, dan laporan neraca berada dalam status terkontrol dan dapat dipantau di dashboard eksekutif.`;
                 }
-            } else {
-                aiResponse = "Pertanyaan Anda telah diproses oleh sistem AI TUAN ARESTU v6.0.";
-            }
 
-            const aiMsg = document.createElement('div');
-            aiMsg.className = 'flex items-start space-x-3';
-            aiMsg.innerHTML = `
-                <div class="w-8 h-8 rounded-lg bg-brand-700 text-white flex items-center justify-center shrink-0 text-xs font-bold">
-                    AI
-                </div>
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 text-xs text-slate-800 space-y-2 max-w-2xl shadow-sm">
-                    ${aiResponse}
-                </div>
-            `;
-            chatContainer.appendChild(aiMsg);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'flex items-start space-x-3';
+                aiMsg.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-brand-700 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                        AI
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 text-xs text-slate-800 space-y-2 max-w-2xl shadow-sm">
+                        ${responseText.replace(/\n/g, '<br>')}
+                    </div>
+                `;
+                chatBox.appendChild(aiMsg);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 400);
         }
 
-        window.onload = function() {
-            recalculateCOABalances();
-            logAuditEvent('SYSTEM_INIT', 'System Engine', 'Inisialisasi sistem TUAN ARESTU v6.0 selesai');
-        };
+        // INITIALIZE APPLICATION
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEnterpriseSeedData();
+        });
     </script>
 </body>
 </html>
